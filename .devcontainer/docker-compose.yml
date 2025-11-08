@@ -1,0 +1,15 @@
+services:
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: parseval-parser-dev
+    image: java.17-dev.container
+    working_dir: /workspace
+    volumes:
+      - ..:/workspace:cached
+    environment:
+      - APP_PORT=25333
+    ports:
+      - "25333:25333"
+    command: ["sh", "./start.sh"]

@@ -93,11 +93,26 @@ public class Main {
     }
 
     public static void main(String[] args) throws SchemaParseException, UnsupportedException, IOException, SqlParseException, ValidationException {
+        int port = 25333;
 
-//        Main m = new Main();
-//        String config = readFile("/home/chunyu/Projects/parser/com.sql.parser/src/main/java/com/parseval/example_input.json");
-//        System.out.println(m.parse(config));
-        GatewayServer gatewayServer = new GatewayServer(new Main(), 25333);
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid port number provided. Using default: " + port);
+            }
+        }else{
+            String envPort = System.getenv("APP_PORT");
+            if( envPort != null){
+                try {
+                    port = Integer.parseInt(envPort);
+                } catch (NumberFormatException e) {
+                    System.err.println("Invalid APP_PORT environment variable. Using port: " + port);
+                }
+            }
+        }
+
+        GatewayServer gatewayServer = new GatewayServer(new Main(), port);
         gatewayServer.start();
         System.out.println("Gateway Server Started");
     }
