@@ -54,7 +54,7 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 import org.apache.calcite.sql.type.SqlTypeName;
-import org.example.sql.operands.CustomOperand;
+
 
 public class CustomizeSchema extends AbstractSchema implements Serializable{
     private String name;
