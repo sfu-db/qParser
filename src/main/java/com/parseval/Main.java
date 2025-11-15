@@ -18,6 +18,7 @@ import org.apache.calcite.tools.ValidationException;
 import py4j.GatewayServer;
 import java.io.*;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -112,9 +113,17 @@ public class Main {
             }
         }
 
-        GatewayServer gatewayServer = new GatewayServer(new Main(), port);
+        InetAddress addr = InetAddress.getByName("0.0.0.0");
+
+        GatewayServer.GatewayServerBuilder builder = new GatewayServer.GatewayServerBuilder(new Main());
+        builder.javaAddress(addr);
+        builder.javaPort(port);
+
+        GatewayServer gatewayServer = builder.build();
         gatewayServer.start();
         System.out.println("Gateway Server Started");
+        System.out.println("Listening on address: " + gatewayServer.getAddress().toString());
+        System.out.println("Listening on port: " + gatewayServer.getListeningPort());
     }
 
 }

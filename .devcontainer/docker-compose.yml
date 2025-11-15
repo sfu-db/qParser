@@ -1,3 +1,6 @@
+networks:
+  parseval_devcontainer_default:
+    external: true
 services:
   dev:
     build:
@@ -6,6 +9,8 @@ services:
     container_name: parseval-parser-dev
     image: java.17-dev.container
     working_dir: /workspace
+    networks:
+      - parseval_devcontainer_default
     volumes:
       - ..:/workspace:cached
     environment:
