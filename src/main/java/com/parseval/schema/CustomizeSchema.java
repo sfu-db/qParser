@@ -18,6 +18,8 @@ import kala.collection.mutable.MutableList;
 import org.apache.calcite.jdbc.CalciteConnection;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.ColumnStrategy;
 import org.apache.calcite.schema.Function;
@@ -118,6 +120,7 @@ public class CustomizeSchema extends AbstractSchema implements Serializable{
                 schemaNode = (SqlCreateTable)schemaParser.parseStmt();
                 addTable(schemaNode);
             } catch (SqlParseException e) {
+                System.out.println(e.getMessage());
                 throw new SchemaParseException(e);
             }
         }
@@ -133,6 +136,7 @@ public class CustomizeSchema extends AbstractSchema implements Serializable{
         var nullabilities = MutableList.<Boolean>create();
         var keys = MutableList.<ImmutableBitSet>create();
         var checkConstraints = MutableList.<RexNode>create();
+        var foreignKeys = MutableList.<ForeignKeySpec>create();
 
         for (SqlNode column : node.columnList) {
             switch (column.getKind()){
@@ -146,12 +150,37 @@ public class CustomizeSchema extends AbstractSchema implements Serializable{
                     types.append(typ);
                     nullabilities.append(decl.strategy != ColumnStrategy.NOT_NULLABLE);
                 }
-                case FOREIGN_KEY, CHECK -> System.err.println("Foreign key/CHECK constraints are not implemented yet.");
+                case FOREIGN_KEY, CHECK -> {
+                    SqlKeyConstraint constraint = (SqlKeyConstraint) column;
+                    List<SqlNode> ops = constraint.getOperandList();
+
+                    String name = (ops.get(0) instanceof SqlIdentifier id)
+                            ? id.getSimple()
+                            : null;
+
+                    SqlNodeList referencingCols = (SqlNodeList) ops.get(1);
+                    SqlIdentifier targetTable = (SqlIdentifier) ops.get(2);
+                    SqlNodeList targetCols = (SqlNodeList) ops.get(3);
+
+                    List<String> referencing = referencingCols.getList().stream()
+                            .map(n -> ((SqlIdentifier) n).getSimple())
+                            .toList();
+
+                    List<String> referenced = targetCols.getList().stream()
+                            .map(n -> ((SqlIdentifier) n).getSimple())
+                            .toList();
+
+                    foreignKeys.append(new ForeignKeySpec(
+                            name,
+                            referencing,
+                            targetTable.toString(),
+                            referenced
+                    ));
+                }
                 case PRIMARY_KEY, UNIQUE -> {
                     SqlKeyConstraint cons = (SqlKeyConstraint) column;
                     List<Integer> key = new ArrayList<>();
                     for (SqlNode id : (SqlNodeList) cons.getOperandList().get(1)) {
-
                         int index = names.indexOf(id.toString());
                         key.add(index);
                         if (column.getKind() == SqlKind.PRIMARY_KEY) {
@@ -166,7 +195,7 @@ public class CustomizeSchema extends AbstractSchema implements Serializable{
         }
         var customizeTable = new CustomizeTable(node.name.toString(), names.toImmutableSeq(),
                 ImmutableSeq.from(types.zip(nullabilities).map(type -> new RelType.BaseType(type.component1(), type.component2()))),
-                ImmutableSet.from(keys), ImmutableSet.from(checkConstraints));
+                ImmutableSet.from(keys), ImmutableSet.from(checkConstraints), ImmutableSet.from(foreignKeys));
         tables.put(node.name.toString(), customizeTable);
     }
 

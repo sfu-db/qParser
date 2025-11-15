@@ -21,6 +21,16 @@ public class CustomizeTable extends AbstractTable {
     Seq<RelDataType> columnTypes;
     Set<ImmutableBitSet> keys;
     Set<RexNode> constraints;
+    Set<ForeignKeySpec> foreignKeySpecs;
+
+    public CustomizeTable(String name, Seq<String> columnNames, Seq<RelDataType> columnTypes, Set<ImmutableBitSet> keys, Set<RexNode> constraints, Set<ForeignKeySpec> foreignKeySpecs) {
+        this.name = name;
+        this.columnNames = columnNames;
+        this.columnTypes = columnTypes;
+        this.keys = keys;
+        this.constraints = constraints;
+        this.foreignKeySpecs = foreignKeySpecs;
+    }
 
 
     public CustomizeTable(String name, Seq<String> columnNames, Seq<RelDataType> columnTypes, Set<ImmutableBitSet> keys, Set<RexNode> constraints) {
