@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: parseval-parser-dev
+    container_name: parseval-parser
     image: java.17-dev.container
     working_dir: /workspace
     networks:
