@@ -8,6 +8,7 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.core.CorrelationId;
+import org.apache.calcite.rel.core.TableScan;
 import org.apache.calcite.rel.externalize.RelJson;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.*;
@@ -26,6 +27,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.UnaryOperator;
 
 import static java.util.Objects.requireNonNull;
+
+import org.apache.calcite.rel.type.RelDataTypeField;
 
 public class ParSevalRelWriter implements RelWriter {
 
@@ -72,10 +75,24 @@ public class ParSevalRelWriter implements RelWriter {
         final Map<String, @Nullable Object> map = jsonBuilder.map();
         map.put("relOp", relJson.classToTypeName(rel.getClass()));
         String relOp = relJson.classToTypeName(rel.getClass());
+
         switch (relOp) {
             case "LogicalTableScan" -> {
                 var qName = rel.getTable().getQualifiedName();
                 put(map, "table", qName.get(qName.size() - 1));
+
+                var node = (LogicalTableScan) rel;
+
+                final List<Object> columns = jsonBuilder.list();
+
+                for (RelDataTypeField field :rel.getRowType().getFieldList()) {
+                    final Map<String, @Nullable Object> column = jsonBuilder.map();
+                    column.put("name", field.getName());
+                    column.put("type", serialize(field.getType()));
+                    columns.add(column);
+                }
+                map.put("columns", columns);
+
             }
             case "LogicalValues" -> {
                 var node = (LogicalValues) rel;
@@ -102,6 +119,7 @@ public class ParSevalRelWriter implements RelWriter {
             }
             case "LogicalJoin" -> {
                 var join = (LogicalJoin) rel;
+
                 map.put("joinType", join.getJoinType().lowerName);
                 map.put("condition", serialize(join.getCondition()));
             }
@@ -199,25 +217,28 @@ public class ParSevalRelWriter implements RelWriter {
         map.put("inputs", ll);
         previousId = id;
     }
+    private Map<String, @Nullable Object> serialize(RelDataType relDataType) {
+        Map<String, @Nullable Object> map = jsonBuilder.map();
+        put(map, "name", relDataType.getSqlTypeName().getName());
+        put(map, "nullable", relDataType.isNullable());
+        put(map, "precision", relDataType.getPrecision());
+        put(map, "scale", relDataType.getScale());
+        return  map;
+    }
     private Map<String, @Nullable Object> serialize(RexNode rex) {
         Map<String, @Nullable Object> map = jsonBuilder.map();
         map.put("kind", rex.getKind().toString());
+        map.put("type", serialize(rex.getType()));
 
         if(rex instanceof RexInputRef) {
             var inputRef = (RexInputRef)rex;
-//            map.put("kind", inputRef.getKind().toString());
             map.put("index", inputRef.getIndex());
             map.put("name", inputRef.getName());
-            map.put("type", type(inputRef.getType().getSqlTypeName()));
 
         }else if (rex instanceof RexLiteral) {
             var literal = (RexLiteral) rex;
             Object operator = literal.getValue() == null ? "NULL" : getLiteralValue(literal);
-//            map.put("kind", rex.getKind().toString());
             put(map, "value", operator);
-            put(map, "type",type(literal.getType()));
-            put(map, "nullable", literal.getType().isNullable());
-            put(map, "precision", literal.getType().getPrecision());
 
         } else if (rex instanceof  RexSubQuery) {
             var rexSubQuery = (RexSubQuery) rex;
@@ -231,15 +252,13 @@ public class ParSevalRelWriter implements RelWriter {
             for (Object rid : explainInputs(List.of(rexSubQuery.rel))) {
                 queryList.add(relMap.get(rid));
             }
-//            map.put("kind", rexSubQuery.getKind().toString());
+
             map.put("query", queryList);
         } else if(rex instanceof RexCall) {
             var rexCall = (RexCall) rex;
             String operator = rexCall.getOperator().getName();
 
             map.put("operator", operator);
-            map.put("type", type(rexCall.getType()));
-//            map.put("kind", rexCall.getKind().toString());
             List operands = jsonBuilder.list();
             for(RexNode operand : rexCall.getOperands()) {
                 operands.add(serialize(operand));
@@ -250,8 +269,6 @@ public class ParSevalRelWriter implements RelWriter {
             CorrelationId id = ((RexCorrelVariable) fieldAccess.getReferenceExpr()).id;
             map.put("column", fieldAccess.getField().getIndex());
             map.put("name", id.toString());
-            map.put("type", type(fieldAccess.getType().getSqlTypeName()));
-//            map.put("kind", fieldAccess.getKind().toString());
         } else {
             throw  new RuntimeException("Not Implemented: " + rex.getKind());
         }
@@ -261,10 +278,15 @@ public class ParSevalRelWriter implements RelWriter {
     }
 
     private static String type(RelDataType relDataType){
+
+
         return type(relDataType.getSqlTypeName());
     }
 
     private static String type(SqlTypeName sqlTypeName){
+
+
+
         return sqlTypeName.getName();
     }
 

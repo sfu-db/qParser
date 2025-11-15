@@ -16,8 +16,11 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.tools.ValidationException;
 import py4j.GatewayServer;
+import py4j.GatewayServerListener;
+
 import java.io.*;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -76,6 +79,8 @@ public class Main {
             if(!help.isBlank()) { System.out.println(help); } else {System.out.println(error); };
             System.out.println("********************************************************");
             response.add(Map.of("state", state, "help", help, "plan", plan, "error", error, "time", endTime - startTime));
+
+            System.out.println("plan" + plan);
         }
         return gson.toJson(response);
     }
@@ -96,8 +101,13 @@ public class Main {
 
 //        Main m = new Main();
 //        String config = readFile("/home/chunyu/Projects/parser/com.sql.parser/src/main/java/com/parseval/example_input.json");
-//        System.out.println(m.parse(config));
-        GatewayServer gatewayServer = new GatewayServer(new Main(), 25333);
+//
+//        System.out.println(m.parse(config).toString());
+
+        GatewayServer.GatewayServerBuilder builder = new GatewayServer.GatewayServerBuilder(new Main());
+        builder.javaAddress(InetAddress.getByName("0.0.0.0"));
+
+        GatewayServer gatewayServer = builder.build();
         gatewayServer.start();
         System.out.println("Gateway Server Started");
     }
