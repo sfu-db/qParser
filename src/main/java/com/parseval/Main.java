@@ -99,17 +99,17 @@ public class Main {
 
     public static void main(String[] args) throws SchemaParseException, UnsupportedException, IOException, SqlParseException, ValidationException {
 
-        Main m = new Main();
-        String config = readFile("/home/chunyu/Projects/parser/com.sql.parser/src/main/java/com/parseval/example_input.json");
+        // Main m = new Main();
+        // String config = readFile("/home/chunyu/Projects/parser/com.sql.parser/src/main/java/com/parseval/example_input.json");
 
-        System.out.println(m.parse(config).toString());
+        // System.out.println(m.parse(config).toString());
 
-//        GatewayServer.GatewayServerBuilder builder = new GatewayServer.GatewayServerBuilder(new Main());
-//        builder.javaAddress(InetAddress.getByName("0.0.0.0"));
-//
-//        GatewayServer gatewayServer = builder.build();
-//        gatewayServer.start();
-//        System.out.println("Gateway Server Started");
+       GatewayServer.GatewayServerBuilder builder = new GatewayServer.GatewayServerBuilder(new Main());
+       builder.javaAddress(InetAddress.getByName("0.0.0.0"));
+
+       GatewayServer gatewayServer = builder.build();
+       gatewayServer.start();
+       System.out.println("Gateway Server Started");
     }
 
 }
